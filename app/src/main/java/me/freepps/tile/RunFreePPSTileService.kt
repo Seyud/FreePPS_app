@@ -76,11 +76,6 @@ class RunFreePPSTileService : TileService() {
                     "me.freepps.tile.FREEPPS_RUN_SCRIPT" -> {
                         checkAndUpdateFreePPSStatus()
                     }
-                    "me.freepps.tile.FREEPPS_OFF" -> {
-                        executeScript("sh /data/adb/modules/FreePPS/action.sh")
-                        checkAndUpdateFreePPSStatus()
-                        killApp()
-                    }
                     "me.freepps.tile.FREEPPS_UPDATE" -> {
                         executeScript("sh /data/adb/modules/FreePPS/action.sh")
                         checkAndUpdateFreePPSStatus()
@@ -104,20 +99,18 @@ class RunFreePPSTileService : TileService() {
         }
     }
 
-    private fun killApp() {
-        try {
-            android.os.Process.killProcess(android.os.Process.myPid())
-        } catch (e: Exception) {
-            Log.e("killApp", "Error killing app process", e)
-        }
-    }
-
     fun checkAndUpdateFreePPSStatus() {
         try {
             val freeValue = readFreeValue()
             val newState = when (freeValue) {
-                "1" -> Tile.STATE_ACTIVE
-                else -> Tile.STATE_INACTIVE
+                "1" -> {
+                    showToast("✅锁定PPS支持⚡")
+                    Tile.STATE_ACTIVE
+                }
+                else -> {
+                    showToast("⏸️PPS已暂停💤")
+                    Tile.STATE_INACTIVE
+                }
             }
             
             qsTile.state = newState
@@ -238,38 +231,23 @@ class RunFreePPSTileService : TileService() {
         try {
             createNotificationChannel()
 
-            val (state, _) = loadTileState()
-
-            val statusText = if (state == Tile.STATE_ACTIVE) {
-                "FreePPS: 已锁定\n$lastToastMessage"
-            } else {
-                "FreePPS: 已关闭\n$lastToastMessage"
-            }
-
             val notificationIntent = Intent(this, NotificationClickReceiver::class.java).apply {
                 action = "me.freepps.tile.FREEPPS_NOTIFICATION_CLICKED"
             }
 
             val pendingIntent = PendingIntent.getBroadcast(this, 0, notificationIntent, 
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
-            val offIntent = Intent(this, RunFreePPSTileService::class.java).apply {
-                action = "me.freepps.tile.FREEPPS_OFF"
-            }
-            
-            val offPendingIntent = PendingIntent.getService(this, 1, offIntent, 
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             
             val updateIntent = Intent(this, RunFreePPSTileService::class.java).apply {
                 action = "me.freepps.tile.FREEPPS_UPDATE"
             }
-            val updatePendingIntent = PendingIntent.getService(this, 2, updateIntent, 
+            val updatePendingIntent = PendingIntent.getService(this, 1, updateIntent, 
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             
             val onIntent = Intent(this, RunFreePPSTileService::class.java).apply {
                 action = "me.freepps.tile.FREEPPS_ON"
             }
-            val onPendingIntent = PendingIntent.getService(this, 3, onIntent, 
+            val onPendingIntent = PendingIntent.getService(this, 2, onIntent, 
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             
             val isLightStatusBar = isLightStatusBar(this)
@@ -277,11 +255,10 @@ class RunFreePPSTileService : TileService() {
 
             val notification = NotificationCompat.Builder(this, channelId)
                 .setContentTitle("FreePPS 状态")
-                .setContentText(statusText)
+                .setContentText(lastToastMessage)
                 .setSmallIcon(notificationIcon)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(pendingIntent)
-                .addAction(R.drawable.ic_off, "关闭", offPendingIntent)
                 .addAction(R.drawable.ic_update, "刷新", updatePendingIntent)
                 .addAction(R.drawable.ic_on, "切换", onPendingIntent)
                 .setOngoing(true)
