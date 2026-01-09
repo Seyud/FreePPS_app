@@ -104,6 +104,14 @@ class RunFreePPSTileService : TileService() {
         }
     }
 
+    private fun killApp() {
+        try {
+            android.os.Process.killProcess(android.os.Process.myPid())
+        } catch (e: Exception) {
+            Log.e("killApp", "Error killing app process", e)
+        }
+    }
+
     fun checkAndUpdateFreePPSStatus() {
         try {
             val freeValue = readFreeValue()
@@ -230,7 +238,7 @@ class RunFreePPSTileService : TileService() {
         try {
             createNotificationChannel()
 
-            val (state, timestamp) = loadTileState()
+            val (state, _) = loadTileState()
 
             val statusText = if (state == Tile.STATE_ACTIVE) {
                 "FreePPS: 已锁定\n$lastToastMessage"

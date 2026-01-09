@@ -30,6 +30,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = false
     }
 
     kotlinOptions {
@@ -44,6 +45,10 @@ android {
         warningsAsErrors = false
         abortOnError = false
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
