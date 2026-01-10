@@ -31,15 +31,18 @@ class RunFreePPSTileService : TileService() {
     private val prefsFileName = "tile_prefs"
     private val tileStateKey = "tile_state"
     private val tileTimeKey = "tile_time"
+    private val notificationClosedKey = "notification_closed"
     private val channelId = "freepps_status_channel"
 
     override fun onStartListening() {
         super.onStartListening()
         try {
-            val (savedState) = loadTileState()
-            qsTile.state = savedState
-            qsTile.updateTile()
-            updateNotification(getLastToastMessage())
+            // 实时查询 FreePPS 状态
+            val statusMessage = updateTileStateFromFile()
+            // 只有在通知未被用户手动关闭时才显示
+            if (!isNotificationClosed()) {
+                updateNotification(statusMessage)
+            }
         } catch (e: Exception) {
             Log.e("onStartListening", "Failed to start listening and restore tile state", e)
             handleError(e, "Failed to start listening and restore tile state")
@@ -86,6 +89,9 @@ class RunFreePPSTileService : TileService() {
                     "me.freepps.tile.RESTORE_TILE_STATE" -> {
                         restoreTileStateAndNotification()
                     }
+                    "me.freepps.tile.FREEPPS_REFRESH_STATE" -> {
+                        refreshTileAndNotification()
+                    }
                     else -> {
                         Log.w("OnStartCommand", "Unknown action: ${it.action}")
                     }
@@ -117,10 +123,49 @@ class RunFreePPSTileService : TileService() {
             val currentTime = getCurrentTime()
             saveTileState(newState, currentTime)
             qsTile.updateTile()
+            // 状态改变时重新启用通知并显示
+            setNotificationClosed(false)
             updateNotification(getLastToastMessage())
         } catch (e: Exception) {
             Log.e("checkAndUpdateFreePPSStatus", "Error checking freepps status", e)
             handleError(e, "Error checking freepps status")
+        }
+    }
+
+    private fun updateTileStateFromFile(): String {
+        return try {
+            val freeValue = readFreeValue()
+            val (newState, statusMessage) = when (freeValue) {
+                "1" -> Pair(Tile.STATE_ACTIVE, "✅锁定PPS支持⚡")
+                else -> Pair(Tile.STATE_INACTIVE, "⏸️PPS已暂停💤")
+            }
+            
+            qsTile.state = newState
+            val currentTime = getCurrentTime()
+            saveTileState(newState, currentTime)
+            qsTile.updateTile()
+            
+            // 保存当前状态消息供通知使用
+            saveStatusMessage(statusMessage)
+            
+            Log.d("updateTileStateFromFile", "Tile state updated: $newState (free=$freeValue)")
+            statusMessage
+        } catch (e: Exception) {
+            Log.e("updateTileStateFromFile", "Error updating tile state from file", e)
+            // 如果读取失败，加载上次保存的状态作为后备
+            val (savedState) = loadTileState()
+            qsTile.state = savedState
+            qsTile.updateTile()
+            getLastToastMessage()
+        }
+    }
+    
+    private fun saveStatusMessage(message: String) {
+        try {
+            val sharedPreferences = getSharedPreferences(prefsFileName, Context.MODE_PRIVATE)
+            sharedPreferences.edit().putString("last_toast_message", message).apply()
+        } catch (e: Exception) {
+            Log.e("saveStatusMessage", "Error saving status message", e)
         }
     }
 
@@ -196,14 +241,47 @@ class RunFreePPSTileService : TileService() {
         }
     }
     
+    private fun isNotificationClosed(): Boolean {
+        return try {
+            getSharedPreferences(prefsFileName, Context.MODE_PRIVATE)
+                .getBoolean(notificationClosedKey, false)
+        } catch (e: Exception) {
+            Log.e("isNotificationClosed", "Error checking notification closed state", e)
+            false
+        }
+    }
+    
+    private fun setNotificationClosed(closed: Boolean) {
+        try {
+            getSharedPreferences(prefsFileName, Context.MODE_PRIVATE)
+                .edit().putBoolean(notificationClosedKey, closed).apply()
+        } catch (e: Exception) {
+            Log.e("setNotificationClosed", "Error setting notification closed state", e)
+        }
+    }
+    
     private fun restoreTileStateAndNotification() {
         try {
             val (savedState) = loadTileState()
             qsTile.state = savedState
             qsTile.updateTile()
-            updateNotification(getLastToastMessage())
+            if (!isNotificationClosed()) {
+                updateNotification(getLastToastMessage())
+            }
         } catch (e: Exception) {
             Log.e("RestoreTileStateError", "Failed to restore tile state", e)
+        }
+    }
+    
+    private fun refreshTileAndNotification() {
+        try {
+            Log.d("refreshTileAndNotification", "Manual refresh triggered")
+            val statusMessage = updateTileStateFromFile()
+            updateNotification(statusMessage)
+            Toast.makeText(this, "状态已刷新", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("refreshTileAndNotification", "Error refreshing tile and notification", e)
+            Toast.makeText(this, "刷新失败", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -238,16 +316,22 @@ class RunFreePPSTileService : TileService() {
             val pendingIntent = PendingIntent.getBroadcast(this, 0, notificationIntent, 
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             
-            val updateIntent = Intent(this, RunFreePPSTileService::class.java).apply {
-                action = "me.freepps.tile.FREEPPS_UPDATE"
-            }
-            val updatePendingIntent = PendingIntent.getService(this, 1, updateIntent, 
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            
             val onIntent = Intent(this, RunFreePPSTileService::class.java).apply {
                 action = "me.freepps.tile.FREEPPS_ON"
             }
             val onPendingIntent = PendingIntent.getService(this, 2, onIntent, 
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            
+            val refreshIntent = Intent(this, NotificationClickReceiver::class.java).apply {
+                action = "me.freepps.tile.FREEPPS_REFRESH"
+            }
+            val refreshPendingIntent = PendingIntent.getBroadcast(this, 4, refreshIntent, 
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            
+            val closeIntent = Intent(this, NotificationClickReceiver::class.java).apply {
+                action = "me.freepps.tile.FREEPPS_CLOSE_NOTIFICATION"
+            }
+            val closePendingIntent = PendingIntent.getBroadcast(this, 3, closeIntent, 
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             
             val isLightStatusBar = isLightStatusBar(this)
@@ -259,8 +343,9 @@ class RunFreePPSTileService : TileService() {
                 .setSmallIcon(notificationIcon)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(pendingIntent)
-                .addAction(R.drawable.ic_update, "刷新", updatePendingIntent)
                 .addAction(R.drawable.ic_on, "切换", onPendingIntent)
+                .addAction(0, "刷新", refreshPendingIntent)
+                .addAction(0, "关闭通知", closePendingIntent)
                 .setOngoing(true)
                 .build()
 
@@ -306,8 +391,27 @@ class RunFreePPSTileService : TileService() {
 class NotificationClickReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         try {
-            if (intent.action == "me.freepps.tile.FREEPPS_NOTIFICATION_CLICKED") {
-                Log.d("NotificationClickReceiver", "Notification clicked")
+            when (intent.action) {
+                "me.freepps.tile.FREEPPS_NOTIFICATION_CLICKED" -> {
+                    Log.d("NotificationClickReceiver", "Notification clicked")
+                }
+                "me.freepps.tile.FREEPPS_REFRESH" -> {
+                    Log.d("NotificationClickReceiver", "Refresh notification clicked")
+                    // 触发刷新服务
+                    val refreshIntent = Intent(context, RunFreePPSTileService::class.java).apply {
+                        action = "me.freepps.tile.FREEPPS_REFRESH_STATE"
+                    }
+                    context.startService(refreshIntent)
+                }
+                "me.freepps.tile.FREEPPS_CLOSE_NOTIFICATION" -> {
+                    Log.d("NotificationClickReceiver", "Close notification clicked")
+                    // 记录用户手动关闭了通知
+                    val sharedPreferences = context.getSharedPreferences("tile_prefs", Context.MODE_PRIVATE)
+                    sharedPreferences.edit().putBoolean("notification_closed", true).apply()
+                    // 取消通知
+                    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.cancel(1)
+                }
             }
         } catch (e: Exception) {
             Log.e("NotificationClickReceiver", "Error handling notification click", e)

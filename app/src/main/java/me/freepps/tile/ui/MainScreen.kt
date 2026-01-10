@@ -152,7 +152,7 @@ fun MainScreen() {
                 ) {
                     BasicComponent(
                         title = "添加磁贴",
-                        summary = "请在下拉面板中添加 FreePPS 磁贴"
+                        summary = "请在控制中心下拉面板中添加 FreePPS 磁贴"
                     )
                     BasicComponent(
                         title = "切换状态",
@@ -165,7 +165,7 @@ fun MainScreen() {
 }
 
 private fun showTileHint(context: Context) {
-    Toast.makeText(context, "请在下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
+    Toast.makeText(context, "请在控制中心下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
     Toast.makeText(context, "点击磁贴以切换 PPS 支持状态", Toast.LENGTH_LONG).show()
 }
 
