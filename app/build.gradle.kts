@@ -1,16 +1,17 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "me.freepps.tile"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "me.freepps.tile"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 26
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -38,12 +39,13 @@ android {
     }
 
     buildFeatures {
-        viewBinding = true
+        compose = true
     }
 
     lint {
         warningsAsErrors = false
         abortOnError = false
+        disable += "NullSafeMutableLiveData"
     }
 }
 
@@ -52,10 +54,17 @@ kotlin {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    // Compose BOM
+    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.9.3")
+
+    // Miuix UI Library
+    implementation("top.yukonga.miuix.kmp:miuix:0.7.2")
+
+    implementation("androidx.core:core-ktx:1.15.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

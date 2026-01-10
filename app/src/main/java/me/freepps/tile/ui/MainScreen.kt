@@ -1,0 +1,181 @@
+package me.freepps.tile.ui
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import java.io.BufferedReader
+import java.io.InputStreamReader
+
+@Composable
+fun MainScreen() {
+    val context = LocalContext.current
+    val scrollBehavior = MiuixScrollBehavior()
+
+    var notificationStatus by remember { mutableStateOf("待检测") }
+    var rootStatus by remember { mutableStateOf("待检测") }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        notificationStatus = if (isGranted) "已授予" else "被拒绝"
+        if (isGranted) {
+            showTileHint(context)
+        }
+    }
+
+    // 初始化检测
+    LaunchedEffect(Unit) {
+        // 检测通知权限
+        notificationStatus = if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            showTileHint(context)
+            "已授予"
+        } else {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            "待授权"
+        }
+
+        // 检测 Root 权限
+        rootStatus = if (isRootAvailable()) "已启用" else "未启用"
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = "FreePPS",
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            contentPadding = PaddingValues(
+                top = padding.calculateTopPadding() + 12.dp,
+                bottom = padding.calculateBottomPadding() + 12.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                SmallTitle(text = "状态信息")
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                ) {
+                    BasicComponent(
+                        title = "通知权限",
+                        summary = notificationStatus
+                    )
+                    BasicComponent(
+                        title = "Root 权限",
+                        summary = rootStatus
+                    )
+                }
+            }
+
+            item {
+                SmallTitle(text = "操作")
+            }
+
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextButton(
+                        text = "检查权限状态",
+                        onClick = {
+                            // 重新检测通知权限
+                            notificationStatus = if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) "已授予" else "未授予"
+
+                            // 重新检测 Root 权限
+                            rootStatus = if (isRootAvailable()) "已启用" else "未启用"
+
+                            Toast.makeText(context, "状态已更新", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            item {
+                SmallTitle(text = "使用说明")
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                ) {
+                    BasicComponent(
+                        title = "添加磁贴",
+                        summary = "请在下拉面板中添加 FreePPS 磁贴"
+                    )
+                    BasicComponent(
+                        title = "切换状态",
+                        summary = "点击磁贴以切换 PPS 支持状态"
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun showTileHint(context: Context) {
+    Toast.makeText(context, "请在下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
+    Toast.makeText(context, "点击磁贴以切换 PPS 支持状态", Toast.LENGTH_LONG).show()
+}
+
+private fun isRootAvailable(): Boolean {
+    return try {
+        val process = Runtime.getRuntime().exec("su -c whoami")
+        val reader = BufferedReader(InputStreamReader(process.inputStream))
+        val line = reader.readLine()
+        line != null && line.trim().equals("root", ignoreCase = true)
+    } catch (e: Exception) {
+        false
+    }
+}
