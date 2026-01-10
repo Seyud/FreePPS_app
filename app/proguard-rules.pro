@@ -7,3 +7,7 @@
     public static *** d(...);
     public static *** v(...);
 }
+
+-dontwarn kotlin.Metadata**
+-dontwarn kotlin.reflect.jvm.internal.**
+-ignorewarnings
