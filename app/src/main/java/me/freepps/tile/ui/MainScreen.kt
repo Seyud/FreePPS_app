@@ -59,7 +59,10 @@ fun MainScreen() {
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            showTileHint(context)
+            // 只在首次进入时显示提示
+            if (shouldShowTileHint(context)) {
+                showTileHint(context)
+            }
             "已授予"
         } else {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -164,9 +167,18 @@ fun MainScreen() {
     }
 }
 
+private fun shouldShowTileHint(context: Context): Boolean {
+    val prefs = context.getSharedPreferences("freepps_prefs", Context.MODE_PRIVATE)
+    return !prefs.getBoolean("tile_hint_shown", false)
+}
+
 private fun showTileHint(context: Context) {
     Toast.makeText(context, "请在控制中心下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
     Toast.makeText(context, "点击磁贴以切换 PPS 支持状态", Toast.LENGTH_LONG).show()
+    
+    // 标记为已显示
+    val prefs = context.getSharedPreferences("freepps_prefs", Context.MODE_PRIVATE)
+    prefs.edit().putBoolean("tile_hint_shown", true).apply()
 }
 
 private fun isRootAvailable(): Boolean {
