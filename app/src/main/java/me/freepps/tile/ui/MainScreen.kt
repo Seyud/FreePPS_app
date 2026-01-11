@@ -204,12 +204,16 @@ fun MainScreen() {
                         .padding(horizontal = 12.dp)
                 ) {
                     BasicComponent(
+                        title = "Root 权限",
+                        summary = "授予 Root 权限以支持运行脚本"
+                    )
+                    BasicComponent(
                         title = "添加磁贴",
-                        summary = "请在控制中心下拉面板中添加 FreePPS 磁贴"
+                        summary = "在控制中心下拉面板中添加 FreePPS 磁贴"
                     )
                     BasicComponent(
                         title = "切换状态",
-                        summary = "点击磁贴以切换 PPS 支持状态"
+                        summary = "点击磁贴来切换 FreePPS 状态"
                     )
                 }
             }
@@ -224,8 +228,9 @@ private fun shouldShowTileHint(context: Context): Boolean {
 }
 
 private fun showTileHint(context: Context) {
-    Toast.makeText(context, "请在控制中心下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
-    Toast.makeText(context, "点击磁贴以切换 PPS 支持状态", Toast.LENGTH_LONG).show()
+    Toast.makeText(context, "授予 Root 权限以支持运行脚本", Toast.LENGTH_LONG).show()
+    Toast.makeText(context, "在控制中心下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
+    Toast.makeText(context, "点击磁贴来切换 FreePPS 状态", Toast.LENGTH_LONG).show()
     
     // 标记为已显示
     val prefs = context.getSharedPreferences("freepps_prefs", Context.MODE_PRIVATE)
