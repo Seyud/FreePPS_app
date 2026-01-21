@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -38,6 +39,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
+import me.freepps.tile.R
 import me.freepps.tile.icon.Info
 import me.freepps.tile.icon.MiuixIcons
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -61,13 +63,13 @@ fun RootPermissionDialog(
     onCheckPermission: () -> Unit
 ) {
     SuperDialog(
-        title = "Root 权限检测",
-        summary = "授予 Root 权限以支持运行脚本",
+        title = stringResource(R.string.root_permission_check),
+        summary = stringResource(R.string.root_permission_summary),
         show = showDialog,
         onDismissRequest = { }
     ) {
         TextButton(
-            text = "检测权限",
+            text = stringResource(R.string.check_permission),
             onClick = onCheckPermission,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.textButtonColorsPrimary()
@@ -92,8 +94,8 @@ private fun shouldShowTileHint(context: Context): Boolean {
 }
 
 private fun showTileHint(context: Context) {
-    Toast.makeText(context, "在控制中心下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
-    Toast.makeText(context, "点击磁贴来切换 FreePPS 状态", Toast.LENGTH_LONG).show()
+    Toast.makeText(context, context.getString(R.string.add_tile_hint), Toast.LENGTH_LONG).show()
+    Toast.makeText(context, context.getString(R.string.toggle_tile_hint), Toast.LENGTH_LONG).show()
     
     val prefs = context.getSharedPreferences("freepps_prefs", Context.MODE_PRIVATE)
     prefs.edit().putBoolean("tile_hint_shown", true).apply()
@@ -105,14 +107,14 @@ fun MainScreen() {
     val scrollBehavior = MiuixScrollBehavior()
     var showAboutScreen by remember { mutableStateOf(false) }
 
-    var notificationStatus by remember { mutableStateOf("待检测") }
-    var rootStatus by remember { mutableStateOf("待检测") }
+    var notificationStatus by remember { mutableStateOf(context.getString(R.string.pending_check)) }
+    var rootStatus by remember { mutableStateOf(context.getString(R.string.pending_check)) }
     var showRootDialog: MutableState<Boolean> = remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        notificationStatus = if (isGranted) "已授予" else "被拒绝"
+        notificationStatus = if (isGranted) context.getString(R.string.granted) else context.getString(R.string.denied)
         if (!showRootDialog.value && shouldShowTileHint(context)) {
             showTileHint(context)
         }
@@ -123,14 +125,14 @@ fun MainScreen() {
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-        ) "已授予" else "未授予"
+        ) context.getString(R.string.granted) else context.getString(R.string.not_granted)
 
-        rootStatus = if (isRootAvailable()) "已启用" else "未启用"
+        rootStatus = if (isRootAvailable()) context.getString(R.string.enabled) else context.getString(R.string.disabled)
     }
 
     LaunchedEffect(Unit) {
         val rootAvailable = isRootAvailable()
-        rootStatus = if (rootAvailable) "已启用" else "未启用"
+        rootStatus = if (rootAvailable) context.getString(R.string.enabled) else context.getString(R.string.disabled)
         showRootDialog.value = !rootAvailable
 
         if (ContextCompat.checkSelfPermission(
@@ -138,9 +140,9 @@ fun MainScreen() {
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            notificationStatus = "已授予"
+            notificationStatus = context.getString(R.string.granted)
         } else {
-            notificationStatus = "待授权"
+            notificationStatus = context.getString(R.string.pending_auth)
         }
 
         if (!showRootDialog.value && shouldShowTileHint(context)) {
@@ -179,7 +181,7 @@ fun MainScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = "FreePPS",
+                title = stringResource(R.string.app_name),
                 scrollBehavior = scrollBehavior,
                 actions = {
                     IconButton(
@@ -188,7 +190,7 @@ fun MainScreen() {
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Info,
-                            contentDescription = "关于"
+                            contentDescription = stringResource(R.string.about)
                         )
                     }
                 }
@@ -206,7 +208,7 @@ fun MainScreen() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                SmallTitle(text = "权限信息")
+                SmallTitle(text = stringResource(R.string.permission_info))
             }
 
             item {
@@ -216,18 +218,18 @@ fun MainScreen() {
                         .padding(horizontal = 12.dp)
                 ) {
                     BasicComponent(
-                        title = "通知权限",
+                        title = stringResource(R.string.notification_permission),
                         summary = notificationStatus
                     )
                     BasicComponent(
-                        title = "Root 权限",
+                        title = stringResource(R.string.root_permission),
                         summary = rootStatus
                     )
                 }
             }
 
             item {
-                SmallTitle(text = "操作")
+                SmallTitle(text = stringResource(R.string.operations))
             }
 
             item {
@@ -238,10 +240,10 @@ fun MainScreen() {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TextButton(
-                        text = "刷新权限状态",
+                        text = stringResource(R.string.refresh_permission_status),
                         onClick = { 
                             checkPermissions()
-                            Toast.makeText(context, "权限已更新", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.permission_updated), Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.textButtonColorsPrimary()
@@ -250,7 +252,7 @@ fun MainScreen() {
             }
 
             item {
-                SmallTitle(text = "使用说明")
+                SmallTitle(text = stringResource(R.string.usage_guide))
             }
 
             item {
@@ -260,12 +262,12 @@ fun MainScreen() {
                         .padding(horizontal = 12.dp)
                 ) {
                     BasicComponent(
-                        title = "添加磁贴",
-                        summary = "在控制中心下拉面板中添加 FreePPS 磁贴"
+                        title = stringResource(R.string.add_tile),
+                        summary = stringResource(R.string.add_tile_hint)
                     )
                     BasicComponent(
-                        title = "切换状态",
-                        summary = "点击磁贴来切换 FreePPS 状态"
+                        title = stringResource(R.string.toggle_status),
+                        summary = stringResource(R.string.toggle_tile_hint)
                     )
                 }
             }
@@ -277,7 +279,7 @@ fun MainScreen() {
         showDialog = showRootDialog,
         onCheckPermission = {
             checkPermissions()
-            if (rootStatus == "已启用") {
+            if (rootStatus == context.getString(R.string.enabled)) {
                 showRootDialog.value = false
             }
         }

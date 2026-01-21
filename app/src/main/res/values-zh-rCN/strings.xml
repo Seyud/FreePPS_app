@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FreePPS</string>
+    <string name="my_default_tile_label">FreePPS</string>
+    <string name="root_permission_check">Root 权限检测</string>
+    <string name="root_permission_summary">授予 Root 权限以支持运行脚本</string>
+    <string name="check_permission">检测权限</string>
+    <string name="add_tile_hint">在控制中心下拉面板中添加 FreePPS 磁贴</string>
+    <string name="toggle_tile_hint">点击磁贴来切换 FreePPS 状态</string>
+    <string name="granted">已授予</string>
+    <string name="denied">被拒绝</string>
+    <string name="enabled">已启用</string>
+    <string name="disabled">未启用</string>
+    <string name="pending_auth">待授权</string>
+    <string name="pending_check">待检测</string>
+    <string name="root_permission">Root 权限</string>
+    <string name="operations">操作</string>
+    <string name="refresh_permission_status">刷新权限状态</string>
+    <string name="permission_updated">权限已更新</string>
+    <string name="usage_guide">使用说明</string>
+    <string name="add_tile">添加磁贴</string>
+    <string name="toggle_status">切换状态</string>
+    <string name="pps_locked">✅锁定PPS支持⚡</string>
+    <string name="pps_paused">⏸️PPS已暂停💤</string>
+    <string name="freepps_status">FreePPS 状态</string>
+    <string name="toggle">切换</string>
+    <string name="refresh">刷新</string>
+    <string name="close_notification">关闭通知</string>
+    <string name="notification_channel_description">显示当前 FreePPS 状态</string>
+    <string name="about">关于</string>
+    <string name="back">返回</string>
+    <string name="author">作者</string>
+    <string name="author_avatar_desc">作者头像</string>
+    <string name="project_info">项目信息</string>
+    <string name="source_code">开源地址</string>
+    <string name="open_source_license">开源许可</string>
+    <string name="license">许可证</string>
+    <string name="view_license">查看项目开源许可证</string>
+    <string name="permission_info">权限信息</string>
+    <string name="notification_permission">通知权限</string>
+    <string name="not_granted">未授予</string>
+</resources>

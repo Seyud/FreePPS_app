@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.freepps.tile.R
 import me.freepps.tile.icon.Back
@@ -45,7 +46,7 @@ fun AboutScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = "关于",
+                title = stringResource(R.string.about),
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(
@@ -54,7 +55,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     ) {
                         Icon(
                             imageVector = MiuixIcons.Back,
-                            contentDescription = "返回"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 }
@@ -72,7 +73,7 @@ fun AboutScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                SmallTitle(text = "作者")
+                SmallTitle(text = stringResource(R.string.author))
             }
 
             item {
@@ -87,7 +88,7 @@ fun AboutScreen(onBack: () -> Unit) {
                         leftAction = {
                             Image(
                                 painter = painterResource(id = R.drawable.author_avatar),
-                                contentDescription = "作者头像",
+                                contentDescription = stringResource(R.string.author_avatar_desc),
                                 modifier = Modifier
                                     .padding(end = 12.dp)
                                     .size(40.dp)
@@ -106,7 +107,7 @@ fun AboutScreen(onBack: () -> Unit) {
             }
 
             item {
-                SmallTitle(text = "项目信息")
+                SmallTitle(text = stringResource(R.string.project_info))
             }
 
             item {
@@ -116,7 +117,7 @@ fun AboutScreen(onBack: () -> Unit) {
                         .padding(horizontal = 12.dp)
                 ) {
                     BasicComponent(
-                        title = "开源地址",
+                        title = stringResource(R.string.source_code),
                         summary = "https://github.com/Seyud/FreePPS",
                         onClick = {
                             val intent = Intent(
@@ -130,7 +131,7 @@ fun AboutScreen(onBack: () -> Unit) {
             }
 
             item {
-                SmallTitle(text = "开源许可")
+                SmallTitle(text = stringResource(R.string.open_source_license))
             }
 
             item {
@@ -140,8 +141,8 @@ fun AboutScreen(onBack: () -> Unit) {
                         .padding(horizontal = 12.dp)
                 ) {
                     BasicComponent(
-                        title = "许可证",
-                        summary = "查看项目开源许可证",
+                        title = stringResource(R.string.license),
+                        summary = stringResource(R.string.view_license),
                         onClick = {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,

@@ -110,11 +110,11 @@ class RunFreePPSTileService : TileService() {
             val freeValue = readFreeValue()
             val newState = when (freeValue) {
                 "1" -> {
-                    showToast("✅锁定PPS支持⚡")
+                    showToast(getString(R.string.pps_locked))
                     Tile.STATE_ACTIVE
                 }
                 else -> {
-                    showToast("⏸️PPS已暂停💤")
+                    showToast(getString(R.string.pps_paused))
                     Tile.STATE_INACTIVE
                 }
             }
@@ -136,8 +136,8 @@ class RunFreePPSTileService : TileService() {
         return try {
             val freeValue = readFreeValue()
             val (newState, statusMessage) = when (freeValue) {
-                "1" -> Pair(Tile.STATE_ACTIVE, "✅锁定PPS支持⚡")
-                else -> Pair(Tile.STATE_INACTIVE, "⏸️PPS已暂停💤")
+                "1" -> Pair(Tile.STATE_ACTIVE, getString(R.string.pps_locked))
+                else -> Pair(Tile.STATE_INACTIVE, getString(R.string.pps_paused))
             }
             
             qsTile.state = newState
@@ -335,14 +335,14 @@ class RunFreePPSTileService : TileService() {
             val notificationIcon = if (isLightStatusBar) R.drawable.ic_launcher_dark else R.drawable.ic_launcher_light
 
             val notification = NotificationCompat.Builder(this, channelId)
-                .setContentTitle("FreePPS 状态")
+                .setContentTitle(getString(R.string.freepps_status))
                 .setContentText(lastToastMessage)
                 .setSmallIcon(notificationIcon)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(pendingIntent)
-                .addAction(R.drawable.ic_on, "切换", onPendingIntent)
-                .addAction(0, "刷新", refreshPendingIntent)
-                .addAction(0, "关闭通知", closePendingIntent)
+                .addAction(R.drawable.ic_on, getString(R.string.toggle), onPendingIntent)
+                .addAction(0, getString(R.string.refresh), refreshPendingIntent)
+                .addAction(0, getString(R.string.close_notification), closePendingIntent)
                 .setOngoing(true)
                 .build()
 
