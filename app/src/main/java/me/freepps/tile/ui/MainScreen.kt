@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,10 +30,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
 import me.freepps.tile.icon.Info
 import me.freepps.tile.icon.MiuixIcons
 import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Icon
@@ -41,8 +50,54 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.extra.SuperDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.BufferedReader
 import java.io.InputStreamReader
+
+@Composable
+fun RootPermissionDialog(
+    showDialog: MutableState<Boolean>,
+    onCheckPermission: () -> Unit
+) {
+    SuperDialog(
+        title = "Root 权限检测",
+        summary = "授予 Root 权限以支持运行脚本",
+        show = showDialog,
+        onDismissRequest = { }
+    ) {
+        TextButton(
+            text = "检测权限",
+            onClick = onCheckPermission,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.textButtonColorsPrimary()
+        )
+    }
+}
+
+private fun isRootAvailable(): Boolean {
+    return try {
+        val process = Runtime.getRuntime().exec("su -c whoami")
+        val reader = BufferedReader(InputStreamReader(process.inputStream))
+        val line = reader.readLine()
+        line != null && line.trim().equals("root", ignoreCase = true)
+    } catch (e: Exception) {
+        false
+    }
+}
+
+private fun shouldShowTileHint(context: Context): Boolean {
+    val prefs = context.getSharedPreferences("freepps_prefs", Context.MODE_PRIVATE)
+    return !prefs.getBoolean("tile_hint_shown", false)
+}
+
+private fun showTileHint(context: Context) {
+    Toast.makeText(context, "在控制中心下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
+    Toast.makeText(context, "点击磁贴来切换 FreePPS 状态", Toast.LENGTH_LONG).show()
+    
+    val prefs = context.getSharedPreferences("freepps_prefs", Context.MODE_PRIVATE)
+    prefs.edit().putBoolean("tile_hint_shown", true).apply()
+}
 
 @Composable
 fun MainScreen() {
@@ -52,36 +107,45 @@ fun MainScreen() {
 
     var notificationStatus by remember { mutableStateOf("待检测") }
     var rootStatus by remember { mutableStateOf("待检测") }
+    var showRootDialog: MutableState<Boolean> = remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         notificationStatus = if (isGranted) "已授予" else "被拒绝"
-        if (isGranted) {
+        if (!showRootDialog.value && shouldShowTileHint(context)) {
             showTileHint(context)
         }
     }
 
-    // 初始化检测
-    LaunchedEffect(Unit) {
-        // 检测通知权限
+    fun checkPermissions() {
         notificationStatus = if (ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
+        ) "已授予" else "未授予"
+
+        rootStatus = if (isRootAvailable()) "已启用" else "未启用"
+    }
+
+    LaunchedEffect(Unit) {
+        val rootAvailable = isRootAvailable()
+        rootStatus = if (rootAvailable) "已启用" else "未启用"
+        showRootDialog.value = !rootAvailable
+
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
         ) {
-            // 只在首次进入时显示提示
-            if (shouldShowTileHint(context)) {
-                showTileHint(context)
-            }
-            "已授予"
+            notificationStatus = "已授予"
         } else {
-            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            "待授权"
+            notificationStatus = "待授权"
         }
 
-        // 检测 Root 权限
-        rootStatus = if (isRootAvailable()) "已启用" else "未启用"
+        if (!showRootDialog.value && shouldShowTileHint(context)) {
+            showTileHint(context)
+        }
     }
 
     // 关于页面动画
@@ -174,21 +238,13 @@ fun MainScreen() {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TextButton(
-                        text = "检查权限状态",
-                        onClick = {
-                            // 重新检测通知权限
-                            notificationStatus = if (ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.POST_NOTIFICATIONS
-                                ) == PackageManager.PERMISSION_GRANTED
-                            ) "已授予" else "未授予"
-
-                            // 重新检测 Root 权限
-                            rootStatus = if (isRootAvailable()) "已启用" else "未启用"
-
+                        text = "刷新权限状态",
+                        onClick = { 
+                            checkPermissions()
                             Toast.makeText(context, "权限已更新", Toast.LENGTH_SHORT).show()
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.textButtonColorsPrimary()
                     )
                 }
             }
@@ -204,10 +260,6 @@ fun MainScreen() {
                         .padding(horizontal = 12.dp)
                 ) {
                     BasicComponent(
-                        title = "Root 权限",
-                        summary = "授予 Root 权限以支持运行脚本"
-                    )
-                    BasicComponent(
                         title = "添加磁贴",
                         summary = "在控制中心下拉面板中添加 FreePPS 磁贴"
                     )
@@ -219,31 +271,15 @@ fun MainScreen() {
             }
         }
     }
-    }  // 关闭AnimatedVisibility
-}
-
-private fun shouldShowTileHint(context: Context): Boolean {
-    val prefs = context.getSharedPreferences("freepps_prefs", Context.MODE_PRIVATE)
-    return !prefs.getBoolean("tile_hint_shown", false)
-}
-
-private fun showTileHint(context: Context) {
-    Toast.makeText(context, "授予 Root 权限以支持运行脚本", Toast.LENGTH_LONG).show()
-    Toast.makeText(context, "在控制中心下拉面板中添加 FreePPS 磁贴", Toast.LENGTH_LONG).show()
-    Toast.makeText(context, "点击磁贴来切换 FreePPS 状态", Toast.LENGTH_LONG).show()
-    
-    // 标记为已显示
-    val prefs = context.getSharedPreferences("freepps_prefs", Context.MODE_PRIVATE)
-    prefs.edit().putBoolean("tile_hint_shown", true).apply()
-}
-
-private fun isRootAvailable(): Boolean {
-    return try {
-        val process = Runtime.getRuntime().exec("su -c whoami")
-        val reader = BufferedReader(InputStreamReader(process.inputStream))
-        val line = reader.readLine()
-        line != null && line.trim().equals("root", ignoreCase = true)
-    } catch (e: Exception) {
-        false
     }
+
+    RootPermissionDialog(
+        showDialog = showRootDialog,
+        onCheckPermission = {
+            checkPermissions()
+            if (rootStatus == "已启用") {
+                showRootDialog.value = false
+            }
+        }
+    )
 }

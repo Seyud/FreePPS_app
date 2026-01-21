@@ -186,7 +186,6 @@ class RunFreePPSTileService : TileService() {
         Log.e("FreePPS", message, e)
         qsTile.state = Tile.STATE_INACTIVE
         qsTile.updateTile()
-        showToast("Enable SU for FreePPS")
         saveTileState(qsTile.state, getCurrentTime())
     }
 
@@ -278,10 +277,8 @@ class RunFreePPSTileService : TileService() {
             Log.d("refreshTileAndNotification", "Manual refresh triggered")
             val statusMessage = updateTileStateFromFile()
             updateNotification(statusMessage)
-            Toast.makeText(this, "权限已刷新", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Log.e("refreshTileAndNotification", "Error refreshing tile and notification", e)
-            Toast.makeText(this, "刷新失败", Toast.LENGTH_SHORT).show()
         }
     }
 
